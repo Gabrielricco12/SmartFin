@@ -16,6 +16,7 @@ import { Accounts } from './features/accounts/Accounts';
 import { AccountDetail } from './features/accounts/AccountDetail';
 import { Transactions } from './features/transactions/Transactions';
 import { Categories } from './features/categories/Categories';
+import { UpdatePassword } from './features/auth/UpdatePassword';
 
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
           
           {/* Rotas Protegidas (Blindadas e com Layout) */}
           <Route element={<ProtectedRoute />}>
