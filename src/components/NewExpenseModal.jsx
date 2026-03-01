@@ -73,8 +73,12 @@ export function NewExpenseModal() {
 
     setIsSubmitting(true);
     
+    // SANITIZAÇÃO BLINDADA: Garante que strings vazias ou espaços virem "null" explícito
+    const safeMethodId = methodId && methodId.trim() !== '' ? methodId : null;
+    const safeCategoryId = categoryId && categoryId.trim() !== '' ? categoryId : null;
+    
     // Encontra o nome da categoria para satisfazer a coluna 'category' do banco
-    const selectedCat = categories.find(c => c.id === categoryId);
+    const selectedCat = categories.find(c => c.id === safeCategoryId);
 
     await createTransaction(user.id, {
       amountInCents, 
@@ -82,8 +86,8 @@ export function NewExpenseModal() {
       description, 
       date,
       account_id: accountId, 
-      payment_method_id: methodId || null,
-      category_id: categoryId || null, 
+      payment_method_id: safeMethodId,
+      category_id: safeCategoryId, 
       category_name: selectedCat ? selectedCat.name : 'Outros',
       installments: isInstallment ? Number(installments) : 1
     });
