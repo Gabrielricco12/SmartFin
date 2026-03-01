@@ -8,7 +8,7 @@ export const useAuthStore = create((set) => ({
   isLoading: true,
 
   // 1. INICIALIZAÇÃO E ESCUTA DA SESSÃO
-  initialize: async () => {
+ initializeAuth: async () => {
     try {
       // Pega a sessão atual ao abrir o app
       const { data: { session }, error } = await supabase.auth.getSession();
