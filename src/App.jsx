@@ -5,12 +5,16 @@ import { Toaster } from 'react-hot-toast';
 // Store de Autenticação
 import { useAuthStore } from './stores/useAuthStore';
 
-// Layout Principal
+// Layout Principal (Menu lateral e barra inferior)
 import { AppLayout } from './components/layout/AppLayout';
 
-// Telas (Públicas e Privadas)
+// Telas de Autenticação (Públicas)
 import { Login } from './features/auth/Login';
+import { Register } from './features/auth/Register'; // <-- RESTAURADO
+import { ForgotPassword } from './features/auth/ForgotPassword'; // <-- RESTAURADO
 import { UpdatePassword } from './features/auth/UpdatePassword';
+
+// Telas do Sistema (Protegidas)
 import { Dashboard } from './features/dashboard/Dashboard';
 import { Accounts } from './features/accounts/Accounts';
 import { AccountDetail } from './features/accounts/AccountDetail';
@@ -46,14 +50,27 @@ export default function App() {
             ROTAS PÚBLICAS (Abertas para todos)
         ========================================== */}
         
-        {/* Se já estiver logado, não tem porque ver o Login, vai pro Dashboard */}
+        {/* Login */}
         <Route 
           path="/login" 
           element={!user ? <Login /> : <Navigate to="/dashboard" replace />} 
         />
+
+        {/* Cadastro (Register) */}
+        <Route 
+          path="/register" 
+          element={!user ? <Register /> : <Navigate to="/dashboard" replace />} 
+        />
+
+        {/* Esqueci a Senha */}
+        <Route 
+          path="/forgot-password" 
+          element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" replace />} 
+        />
         
-        {/* A MÁGICA AQUI: A rota de atualizar a senha fica 100% livre do bloqueio. 
-            Assim, o React não expulsa o usuário antes de o Supabase ler o token do e-mail. */}
+        {/* Atualizar Senha (Vindo do link do e-mail - DEVE ser 100% pública) 
+            Nota: Aqui NÃO colocamos o validador "!user", porque ao clicar no e-mail 
+            o Supabase injeta o usuário na sessão. Se bloquearmos, a tela não abre. */}
         <Route 
           path="/update-password" 
           element={<UpdatePassword />} 
@@ -64,7 +81,6 @@ export default function App() {
         ========================================== */}
         <Route element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
           
-          {/* Todas as rotas que ficam dentro do Menu Lateral */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/accounts/:id" element={<AccountDetail />} />
@@ -76,7 +92,7 @@ export default function App() {
         </Route>
 
         {/* ==========================================
-            ROTA FALLBACK (Se o usuário digitar uma URL que não existe)
+            ROTA FALLBACK (Se digitar URL inexistente)
         ========================================== */}
         <Route 
           path="*" 
