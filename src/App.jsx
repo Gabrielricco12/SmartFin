@@ -5,13 +5,13 @@ import { Toaster } from 'react-hot-toast';
 // Store de Autenticação
 import { useAuthStore } from './stores/useAuthStore';
 
-// Layout Principal (Menu lateral e barra inferior)
+// Layout Principal
 import { AppLayout } from './components/layout/AppLayout';
 
 // Telas de Autenticação (Públicas)
 import { Login } from './features/auth/Login';
-import { Register } from './features/auth/Register'; // <-- RESTAURADO
-import { ForgotPassword } from './features/auth/ForgotPassword'; // <-- RESTAURADO
+import { Register } from './features/auth/Register';
+import { ForgotPassword } from './features/auth/ForgotPassword';
 import { UpdatePassword } from './features/auth/UpdatePassword';
 
 // Telas do Sistema (Protegidas)
@@ -22,6 +22,20 @@ import { Transactions } from './features/transactions/Transactions';
 import { Categories } from './features/categories/Categories';
 
 export default function App() {
+  // =========================================================================
+  // INTERCEPTOR DE SEGURANÇA MÁXIMA
+  // Se o Supabase enviar o usuário para a página inicial por engano,
+  // nós interceptamos a URL *antes* do React Router apagar o token secreto.
+  // =========================================================================
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') && window.location.pathname !== '/update-password') {
+      // Teleporta o usuário imediatamente para a tela certa mantendo o token
+      window.location.replace('/update-password' + hash);
+      return null; // Segura a tela branca por um milissegundo enquanto teleporta
+    }
+  }
+
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -31,7 +45,7 @@ export default function App() {
     initializeAuth();
   }, [initializeAuth]);
 
-  // Tela de carregamento enquanto o Supabase decide se o usuário tem sessão ou não
+  // Tela de carregamento enquanto o Supabase processa a sessão
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -49,55 +63,27 @@ export default function App() {
         {/* ==========================================
             ROTAS PÚBLICAS (Abertas para todos)
         ========================================== */}
+        <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/forgot-password" element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" replace />} />
         
-        {/* Login */}
-        <Route 
-          path="/login" 
-          element={!user ? <Login /> : <Navigate to="/dashboard" replace />} 
-        />
-
-        {/* Cadastro (Register) */}
-        <Route 
-          path="/register" 
-          element={!user ? <Register /> : <Navigate to="/dashboard" replace />} 
-        />
-
-        {/* Esqueci a Senha */}
-        <Route 
-          path="/forgot-password" 
-          element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" replace />} 
-        />
-        
-        {/* Atualizar Senha (Vindo do link do e-mail - DEVE ser 100% pública) 
-            Nota: Aqui NÃO colocamos o validador "!user", porque ao clicar no e-mail 
-            o Supabase injeta o usuário na sessão. Se bloquearmos, a tela não abre. */}
-        <Route 
-          path="/update-password" 
-          element={<UpdatePassword />} 
-        />
+        {/* A tela de atualização fica totalmente livre */}
+        <Route path="/update-password" element={<UpdatePassword />} />
 
         {/* ==========================================
             ROTAS PROTEGIDAS (Só entra se user existir)
         ========================================== */}
         <Route element={user ? <AppLayout /> : <Navigate to="/login" replace />}>
-          
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/accounts/:id" element={<AccountDetail />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/categories" element={<Categories />} />
-          
-          {/* Rota raiz "/" redireciona para o Dashboard se estiver logado */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
 
-        {/* ==========================================
-            ROTA FALLBACK (Se digitar URL inexistente)
-        ========================================== */}
-        <Route 
-          path="*" 
-          element={<Navigate to={user ? "/dashboard" : "/login"} replace />} 
-        />
+        {/* ROTA FALLBACK */}
+        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
     </BrowserRouter>
   );
