@@ -1,41 +1,53 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Landmark, Wallet, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { supabase } from '../../lib/supabase';
+
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useAccountStore } from '../../stores/useAccountStore';
 import { useDateStore } from '../../stores/useDateStore';
-import { useRefreshStore } from '../../stores/useRefreshStore'; // Import do gatilho
+import { useRefreshStore } from '../../stores/useRefreshStore';
+import { useAccounts } from '../../hooks/useAccounts';
 import { formatBRL } from '../../utils/currency';
 import { Button } from '../../components/ui/Button';
 
 export function Accounts() {
   const user = useAuthStore(state => state.user);
   const { currentDate, nextMonth, prevMonth, getFormattedMonthName } = useDateStore();
-  const { accounts, totalBalance, isLoading, fetchAccounts, createAccount } = useAccountStore();
-  
-  const refreshKey = useRefreshStore(state => state.refreshKey); // Escuta a mudança
+  const triggerRefresh = useRefreshStore(state => state.triggerRefresh);
+
+  // Usa o novo Hook super-rápido do React Query
+  const { data, isLoading } = useAccounts(user?.id);
+  const { accounts, totalBalance } = data;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', type: 'checking' });
 
-  // Recarrega as contas e transações sempre que o mês ou o BANCO (refreshKey) mudar
-  useEffect(() => {
-    fetchAccounts(user?.id, currentDate);
-  }, [user?.id, currentDate, fetchAccounts, refreshKey]); // Recarrega se a chave mudar
-
+  // Criar conta diretamente no Supabase e engatilhar a atualização
   const handleCreate = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const success = await createAccount(user.id, formData);
+    
+    const { error } = await supabase.from('accounts').insert([{
+      user_id: user.id,
+      name: formData.name,
+      type: formData.type || 'checking',
+      balance: 0
+    }]);
+
     setIsSubmitting(false);
     
-    if (success) {
-      setIsModalOpen(false);
-      setFormData({ name: '', type: 'checking' });
-      // Não precisamos mais forçar o fetch aqui, o Realtime vai cuidar disso!
+    if (error) {
+      toast.error('Erro ao criar conta.');
+      return;
     }
+
+    toast.success('Conta criada com sucesso!');
+    setIsModalOpen(false);
+    setFormData({ name: '', type: 'checking' });
+    triggerRefresh(); // Avisa o app inteiro que uma conta nova surgiu!
   };
 
   return (
